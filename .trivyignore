@@ -1,0 +1,12 @@
+# CVE-2021-3121
+# The vulnerability is inapplicable, as gogo/protobuf v1.1.1 only exist in go.sum because of 
+# it is depended by old version of github.com/prometheus/common, which is in co-dependency of github.com/prometheus/client_golang
+# It's deps graph are: 
+#   gogo/protobuf v1.1.1 -> 
+#   github.com/prometheus/common@v0.4.1 -> 
+#   github.com/prometheus/client_golang@v1.0.0 -> 
+#   github.com/prometheus/common@v0.10.0 ->
+#   github.com/prometheus/client_golang@v1.7.1 ->
+#   github.com/prometheus/common@v0.26.0 ->
+#   github.com/prometheus/client_golang@v1.11.0 -> ...
+CVE-2021-3121

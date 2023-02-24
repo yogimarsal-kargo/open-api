@@ -1,0 +1,55 @@
+version: '3.2'
+
+services:
+  postgresql:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5433:5432"
+    volumes: 
+      - db:/var/lib/postgresql/data
+  jaeger: 
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+  otel-collector:
+    image: otel/opentelemetry-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./files/etc/otel_config/otel-local.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "1888:1888"   # pprof extension
+      - "8888:8888"   # Prometheus metrics exposed by the collector
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP http receiver
+      - "55679:55679" # zpages extension
+
+
+  # go-testapp-http:
+  #   container_name: go-testapp-http-container
+  #   ports:
+  #     - 8080:8080
+  #   image: go-testapp-http:bin
+  #   volumes:
+  #     - /var/log/container:/var/log/
+  #   build:
+  #     context: .
+  #   depends_on:
+  #     - postgresql
+
+volumes:
+  db:
+    driver: local
+
+

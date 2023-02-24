@@ -1,0 +1,123 @@
+name: <Service Name> - Push
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - master
+    paths:
+      - '**'
+env:
+  PROJECT_ID: kargotech-prod
+  go_version: "1.18.2"
+  DOCKER_REGISTRY: "asia.gcr.io/kargotech-prod/backend/<service-image-registry-path>"
+  SERVICE_RHODES_NAME: "<service-rhodes-name>"
+
+jobs:
+  build:
+    name: Build, Publish
+    if: ${{ github.ref_type == 'branch' }}
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.go_version }}
+
+    - name: Generate token to clone library
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.CLONER_APP_ID }}
+        private_key: ${{ secrets.CLONER_PRIVATE_KEY }}
+        installation_id: ${{ secrets.CLONER_INSTALLATION_ID }}
+
+    # Setup gcloud CLI
+    - uses: google-github-actions/setup-gcloud@v0.2.0
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+
+    # Configure Docker to use the gcloud command-line tool as a credential
+    # helper for authentication
+    - name: Setup docker
+      run: |-
+        gcloud --quiet auth configure-docker
+
+    # Build and Push the Docker image to Google Container Registry
+    - name: Build and Publish
+      run: |-
+        make ci-package TAG=$TAG
+      env:
+        GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        TAG: ${{ github.sha }} 
+        DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+
+  #
+  # Dev deployment
+  #
+  deploy-dev:
+    name: dev deployment
+    if: ${{ github.ref_name == 'master' }}
+    needs: ["build"]
+    uses: kargotech/actions-template/.github/workflows/deployment.yaml@v0.2.1
+    with:
+      runs_on: self-hosted
+      argocd_directory: deployment/dev/backend/<service-rhodes-name>
+      environment: dev
+      service_name: <service-rhodes-name>
+      argocd_app: dev-backend-<service-rhodes-name>
+    secrets:
+      deployer_app_id: ${{ secrets.DEPLOYER_APP_ID }}
+      deployer_private_key: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+      deployer_installation_id: ${{ secrets.DEPLOYER_INSTALLATION_ID }}
+
+  #
+  # Integration deployment
+  #
+  deploy-integration:
+    name: integration deployment
+    if: ${{ github.ref_name == 'master' }}
+    needs: ["build"]
+    uses: kargotech/actions-template/.github/workflows/deployment.yaml@v0.2.1
+    with:
+      runs_on: self-hosted
+      argocd_directory: deployment/integration/backend/<service-rhodes-name>
+      environment: integration
+      service_name: <service-rhodes-name>
+      argocd_app: integration-backend-<service-rhodes-name>
+    secrets:
+      deployer_app_id: ${{ secrets.DEPLOYER_APP_ID }}
+      deployer_private_key: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+      deployer_installation_id: ${{ secrets.DEPLOYER_INSTALLATION_ID }}
+
+  # CI Sonarscanner
+  ci-sonarscanner:
+    name: CI Sonarscanner
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+      - name: Generate token to clone library
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.CLONER_APP_ID }}
+          private_key: ${{ secrets.CLONER_PRIVATE_KEY }}
+          installation_id: ${{ secrets.CLONER_INSTALLATION_ID }}
+      - name: Setup git creds to clone repo
+        run: |
+          git config --global url."https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com".insteadOf "https://github.com"
+      - name: Create sonarqube report
+        run: |
+          make ci-sonarqube-report
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

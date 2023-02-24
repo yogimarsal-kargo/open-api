@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.47.1
+    hooks:
+      - id: golangci-lint
+  - repo: local
+    hooks:
+    - id: horusec
+      name: horusec
+      language: system
+      entry: horusec start -p . -e=true -s="LOW, MEDIUM"
+      pass_filenames: false
+      # Hooks for multiple go project inside repo
+      # Useful in case a repo contains multiple project
+      # - id: order_management-golangci
+      #   name: order_management-golangci
+      #   language: system
+      #   entry: bash -c "cd order_management && golangci-lint run --fix --allow-parallel-runners"
+      #   files: 'order_management/.*$'

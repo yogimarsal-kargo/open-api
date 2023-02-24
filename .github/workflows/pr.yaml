@@ -1,0 +1,135 @@
+name: <Service Name> - PR
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '**'
+
+env:
+  go_version: "1.18.2"
+
+jobs:
+  test:
+    name: unit-test-lint
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+
+      - name: Generate token to clone library
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.CLONER_APP_ID }}
+          private_key: ${{ secrets.CLONER_PRIVATE_KEY }}
+          installation_id: ${{ secrets.CLONER_INSTALLATION_ID }}
+
+      - name: Setup git creds to clone repo
+        run: |
+          git config --global url."https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com".insteadOf "https://github.com"
+
+      - name: run unit test
+        run: |
+          make ci-test
+
+  golangci-lint:
+    name: golangci-lint
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      # Need pull-request read if using only-new-issues: true
+      # pull-requests: read
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.go_version }}
+      - name: Generate token to clone library
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.CLONER_APP_ID }}
+          private_key: ${{ secrets.CLONER_PRIVATE_KEY }}
+          installation_id: ${{ secrets.CLONER_INSTALLATION_ID }}
+      - name: Setup git creds to clone repo
+        run: |
+          git config --global url."https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com".insteadOf "https://github.com"
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.47
+          # Optional: restrict golangci-lint to only new issue
+          # only-new-issues: true
+
+
+  horusec:
+    name: Horusec Scan code base
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run Horusec on repository
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash -s v2.8.0
+          horusec start -p . > report.txt || true
+
+      - name: Get changed files
+        id: changed_files
+        uses: tj-actions/changed-files@v3.2
+      - name: Generate report
+        id: generated_report
+        env:
+          LOG_LEVEL: WARNING
+        shell: bash
+        run: |
+          addedfiles=$(echo "${{ steps.changed_files.outputs.added_files }}" | xargs)
+          modifiedfiles=$(echo "${{ steps.changed_files.outputs.modified_files }}" | xargs)
+          files=$(echo $addedfiles $modifiedfiles | xargs)
+          filematch=$(echo $files | sed 's/ /|/g')
+
+          cat report.txt | grep --color=never -e "HORUSEC ENDED THE ANALYSIS" -B 2 -A 7 > comment.txt || true
+
+          ((cat report.txt | grep --color=never -P "$filematch" -B 7 -A 6) || (echo && echo "No vulnerabiblities found in changed files." && echo)) | sed -e "s/^--/==================================================================================/g" >> comment.txt || true
+          echo "==================================================================================" >> comment.txt
+
+          echo >> comment.txt
+          cat report.txt | grep --color=never -e "In this analysis," >> comment.txt || true
+          echo >> comment.txt
+          cat report.txt | grep --color=never -e "Total of Vulnerability" >> comment.txt || true
+          echo >> comment.txt
+          echo "==================================================================================" >> comment.txt
+
+          report=$(cat comment.txt)
+          report="${report//'%'/'%25'}"
+          report="${report//$'\n'/'%0A'}"
+          report="${report// / }"
+          report="${report//$'\t'/    }"
+          report="${report//$'\r'/'%0D'}"
+          echo "::set-output name=report::${report}"
+
+      - name: Comment report on Github
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: |
+            Run Static Application Security Testing using Horusec:
+
+            <details>
+              <summary>Show Report on changed files!</summary>
+
+              ```
+
+              ${{ steps.generated_report.outputs.report }}
+
+              ```
+
+            </details>
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: true

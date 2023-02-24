@@ -1,0 +1,60 @@
+name: Build and Deploy <Service Name>
+on:
+  push:
+    tags:
+      - STG-*
+      - PRD-*
+
+env:
+  PROJECT_ID: kargotech-prod
+  go_version: "1.18.2"
+  DOCKER_REGISTRY: "asia.gcr.io/kargotech-prod/backend/<service-image-registry-path>"
+  SERVICE_RHODES_NAME: "<service-rhodes-name>"
+
+jobs:
+  # Check if image exists in GCR
+  check-gcr:
+    name: Check image in GCR
+    uses: kargotech/actions-template/.github/workflows/check-gcr.yaml@v0.2.2
+    with:
+      runs_on: self-hosted
+      filter_repository: ${{ env.DOCKER_REGISTRY }}
+      filter_tags: ${{ github.sha }}
+      timeout: 15 # Need to be more than 10
+      retries: 6
+
+  #
+  # Stg deployment
+  #
+  deploy-stg:
+    name: stg deployment
+    if: startsWith(github.ref, 'refs/tags/STG-')
+    uses: kargotech/actions-template/.github/workflows/deployment.yaml@v0.2.1
+    with:
+      runs_on: self-hosted
+      argocd_directory: deployment/stg/backend/${{ env.SERVICE_RHODES_NAME }}
+      environment: stg
+      service_name: ${{ env.SERVICE_RHODES_NAME }}
+      argocd_app: stg-backend-${{ env.SERVICE_RHODES_NAME }}
+    secrets:
+      deployer_app_id: ${{ secrets.DEPLOYER_APP_ID }}
+      deployer_private_key: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+      deployer_installation_id: ${{ secrets.DEPLOYER_INSTALLATION_ID }}
+
+  #
+  # Prod deployment
+  #
+  deploy-prod:
+    name: prod deployment
+    if: startsWith(github.ref, 'refs/tags/PRD-')
+    uses: kargotech/actions-template/.github/workflows/deployment.yaml@v0.2.1
+    with:
+      runs_on: self-hosted
+      argocd_directory: deployment/prod/backend/${{ env.SERVICE_RHODES_NAME }}
+      environment: prod
+      service_name: ${{ env.SERVICE_RHODES_NAME }}
+      argocd_app: prod-backend-${{ env.SERVICE_RHODES_NAME }}
+    secrets:
+      deployer_app_id: ${{ secrets.DEPLOYER_APP_ID }}
+      deployer_private_key: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+      deployer_installation_id: ${{ secrets.DEPLOYER_INSTALLATION_ID }}

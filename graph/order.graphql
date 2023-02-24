@@ -1,0 +1,33 @@
+extend type Query {
+  order(input: ID!): Order!
+  orders: [Order!]!
+}
+
+extend type Mutation {
+  createOrder(input: NewOrder!): Order!
+  updateOrder(input: UpdateOrder!): Order!
+}
+
+type Order {
+  id: ID!
+  clientID: String!
+  productID: String!
+  numSales: Int!
+  orderType: String!
+  origin: String!
+  destination: String!
+}
+
+input NewOrder {
+  clientID: String!
+  productID: String!
+  numSales: Int!
+  orderType: String!
+  origin: String!
+  destination: String!
+}
+
+input UpdateOrder {
+    id: ID!
+    numSales: Int!
+}

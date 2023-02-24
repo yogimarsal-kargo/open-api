@@ -1,0 +1,155 @@
+{
+  "horusecCliCertInsecureSkipVerify": false,
+  "horusecCliCertPath": "",
+  "horusecCliContainerBindProjectPath": "",
+  "horusecCliCustomImages": {
+    "c": "",
+    "csharp": "",
+    "elixir": "",
+    "generic": "ghcr.io/kargotech/horusec-generic:1.0.2",
+    "go": "",
+    "hcl": "",
+    "javascript": "",
+    "leaks": "",
+    "php": "",
+    "python": "",
+    "ruby": "",
+    "shell": ""
+  },
+  "horusecCliCustomRulesPath": "",
+  "horusecCliDisableDocker": false,
+  "horusecCliEnableCommitAuthor": false,
+  "horusecCliEnableGitHistoryAnalysis": false,
+  "horusecCliEnableInformationSeverity": false,
+  "horusecCliEnableOwaspDependencyCheck": false,
+  "horusecCliEnableShellcheck": false,
+  "horusecCliFalsePositiveHashes": [
+    "File: Dockerfile",
+    "Code: https://x-access-token:$GITHUB_TOKEN@github.com\".insteadOf \"https://github.com\"",
+    "Details: (1/1) * Possible vulnerability detected: Password found in a hardcoded URL",
+    "9286ef06de768edeffec75581baa4b9397c96bb372d2215b18288128fa0e6c30",
+
+    "File: files/etc/env/env.sample",
+    "Code: export DATABASE_URL=postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable",
+    "69bb858a1df06db89986f7bddbd824669a8585572f25ea11459ca3bb8ec6d743",
+
+    "File: files/etc/dbmate_config/dbmate.sh",
+    "Code: export DATABASE_URL=postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable",
+    "9b6a6985fc20d49018de70a704659c25f35914551baaa7897d98d49c35ff9747"
+  ],
+  "horusecCliFilesOrPathsToIgnore": [
+    "*tmp*",
+    "**/.vscode/**",
+    "**/horusec-config.json",
+    "**/*test.go",
+    "**/test-report.json",
+    "**/coverage.out",
+    "**/golangci-lint.out"
+  ],
+  "horusecCliHeaders": {},
+  "horusecCliHorusecApiUri": "http://0.0.0.0:8000",
+  "horusecCliJsonOutputFilepath": "",
+  "horusecCliLogFilePath": "/tmp/horusec-2022-07-20-16-25-03.log",
+  "horusecCliMonitorRetryInSeconds": 15,
+  "horusecCliPrintOutputType": "",
+  "horusecCliProjectPath": ".",
+  "horusecCliRepositoryAuthorization": "00000000-0000-0000-0000-000000000000",
+  "horusecCliRepositoryName": "go-testapp",
+  "horusecCliReturnErrorIfFoundVulnerability": false,
+  "horusecCliRiskAcceptHashes": null,
+  "horusecCliSeveritiesToIgnore": [
+    "INFO"
+  ],
+  "horusecCliShowVulnerabilitiesTypes": [
+    "Vulnerability"
+  ],
+  "horusecCliTimeoutInSecondsAnalysis": 600,
+  "horusecCliTimeoutInSecondsRequest": 300,
+  "horusecCliToolsConfig": {
+    "Bandit": {
+      "istoignore": true
+    },
+    "Brakeman": {
+      "istoignore": true
+    },
+    "BundlerAudit": {
+      "istoignore": true
+    },
+    "Checkov": {
+      "istoignore": true
+    },
+    "DotnetCli": {
+      "istoignore": true
+    },
+    "Flawfinder": {
+      "istoignore": true
+    },
+    "GitLeaks": {
+      "istoignore": false
+    },
+    "GoSec": {
+      "istoignore": false
+    },
+    "HorusecEngine": {
+      "istoignore": false
+    },
+    "MixAudit": {
+      "istoignore": true
+    },
+    "Nancy": {
+      "istoignore": false
+    },
+    "NpmAudit": {
+      "istoignore": true
+    },
+    "OwaspDependencyCheck": {
+      "istoignore": true
+    },
+    "PhpCS": {
+      "istoignore": true
+    },
+    "Safety": {
+      "istoignore": true
+    },
+    "SecurityCodeScan": {
+      "istoignore": true
+    },
+    "Semgrep": {
+      "istoignore": false
+    },
+    "ShellCheck": {
+      "istoignore": false
+    },
+    "Sobelow": {
+      "istoignore": true
+    },
+    "TfSec": {
+      "istoignore": true
+    },
+    "Trivy": {
+      "istoignore": false
+    },
+    "YarnAudit": {
+      "istoignore": true
+    }
+  },
+  "horusecCliWorkDir": {
+    "go": [],
+    "csharp": [],
+    "ruby": [],
+    "python": [],
+    "java": [],
+    "kotlin": [],
+    "javaScript": [],
+    "leaks": [],
+    "hcl": [],
+    "php": [],
+    "c": [],
+    "yaml": [],
+    "generic": [],
+    "elixir": [],
+    "shell": [],
+    "dart": [],
+    "nginx": []
+  }
+}

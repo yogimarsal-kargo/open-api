@@ -1,0 +1,96 @@
+# Workflow for doing DB operation via github action
+# This workflow require repository github action secret to be set for database to be used.
+# Specifically: DBMATE_DATABASE_URL_${ENV}, according to the ENV that it is applied, for example:
+# DBMATE_DATABASE_URL_PROD for enabling DBMate operation on production
+name: DBMate Operation
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: DBMate environment to execute.
+        required: true
+        type: choice
+        options:
+        - dev
+        - integration
+        - stg
+        - prod
+      command:
+        description: DBMate command to execute.
+        required: true
+        type: choice
+        options:
+        - status
+        - migrate
+        - rollback
+      migration_type:
+        description: DBMate migration type.
+        required: true
+        type: choice
+        options:
+        - default
+        - postdeployment
+      backup_first:
+        description: Backup DB before migrate
+        required: true
+        type: boolean
+        default: false
+      gcp_project_id:
+        description: GCP project ID for backup
+        required: true
+        type: choice
+        default: kargotech-dev
+        options:
+          - kargotech-dev
+          - kargotech-prod
+
+env:
+  service_name: "<service-rhodes-name>"
+
+jobs:
+  db-backup:
+    runs-on: self-hosted
+    if: inputs.backup_first
+    steps:
+    - name: Set up Cloud SDK
+      uses: 'google-github-actions/setup-gcloud@v0'
+
+    - name: Backup DB
+      run: |
+        gcloud sql backups create --instance kargo-${{ inputs.environment }}-${{ env.service_name }}-db --project ${{ inputs.gcp_project_id }} --description post-deploy-migration-$(date +%s)-${{ github.sha }}
+
+  run-dbmate-operation-task:
+    runs-on: self-hosted
+    if: ${{ always() }}
+    needs: db-backup
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install dbmate
+      uses: supplypike/setup-bin@v1
+      with:
+        uri: https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
+        name: dbmate
+        version: latest
+
+    - name: prereq work dbconnection string
+      run: |
+        UPPER_ENV=$(echo "${{ inputs.environment }}" | tr [:lower:] [:upper:])
+        echo "SECRETS_DATABASE_URL_VAR=DBMATE_DATABASE_URL_${UPPER_ENV}" >>${GITHUB_ENV}
+
+    - name: Execute DBMate operation
+      run: |
+        echo 'Operation Result' >> $GITHUB_STEP_SUMMARY
+        ./files/deployment/db-operation.sh 1>>$GITHUB_STEP_SUMMARY 2>>$GITHUB_STEP_SUMMARY
+      env:
+        DBMATE_OPERATION_COMMAND: ${{ inputs.command }}
+        DBMATE_OPERATION_MIGRATION_TYPE: ${{ inputs.migration_type }}
+        DATABASE_URL: ${{ secrets[env.SECRETS_DATABASE_URL_VAR] }}
+    - name: Adding markdown
+      run: |
+        echo 'Input parameter' >> $GITHUB_STEP_SUMMARY
+        echo '- environment: ${{ inputs.environment }}' >> $GITHUB_STEP_SUMMARY
+        echo '- command: `${{ inputs.command }}`' >> $GITHUB_STEP_SUMMARY
+        echo '- migration_type: ${{ inputs.migration_type }}' >> $GITHUB_STEP_SUMMARY

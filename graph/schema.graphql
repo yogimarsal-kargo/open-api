@@ -1,0 +1,12 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+
+type Query {
+  health: String!
+}
+
+type Mutation {
+  health: String!
+}

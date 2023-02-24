@@ -1,0 +1,7 @@
+vendor/
+main
+env.sh
+*.log
+.horusec
+*.out
+bin/

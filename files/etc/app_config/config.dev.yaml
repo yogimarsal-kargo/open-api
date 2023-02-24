@@ -1,0 +1,18 @@
+service:
+  name: go-testapp
+  
+consumers:
+  consumer_a: 
+    topic: topic_a
+    concurrency: 5
+    max-in-flight: 7
+  consumer_b:
+    topic: topic_b
+    concurrency: 8
+    max-in-flight: 11
+
+newrelic:
+  distributed-tracer-enabled: true
+
+log:
+  level: debug
